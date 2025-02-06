@@ -1,0 +1,19 @@
+{
+    "name": "raspberrypi-pico-chardisplay",
+    "dockerComposeFile": "../.docker/compose.yaml",
+    "service": "raspberrypi-pico-chardisplay",
+    "workspaceFolder": "/raspberrypi-pico-chardisplay",
+    "remoteEnv": {
+        "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "probe-rs.probe-rs-debugger",
+                "tamasfe.even-better-toml",
+                "fill-labs.dependi"
+            ]
+        }
+    }
+}

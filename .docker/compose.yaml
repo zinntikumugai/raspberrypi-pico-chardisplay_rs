@@ -1,0 +1,12 @@
+services:
+  raspberrypi-pico-chardisplay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "baker-link-env"
+    container_name: "raspberrypi-pico-chardisplay-container"
+    volumes:
+      - "../:/raspberrypi-pico-chardisplay"
+    working_dir: /raspberrypi-pico-chardisplay
+    command: /bin/sh
+    tty: true
