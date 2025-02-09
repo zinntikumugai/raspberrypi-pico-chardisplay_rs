@@ -3,13 +3,15 @@
 
 use defmt::*;
 use defmt_rtt as _;
+use embedded_hal::delay::DelayNs;
 use panic_probe as _;
 use rp2040_hal as hal;
 
 use hal::pac;
 
-use embedded_hal::delay::DelayNs;
-use embedded_hal::digital::OutputPin;
+use hd44780_driver::HD44780; // HD44780 互換 LCD ドライバ
+use fugit::RateExtU32;  // ファイルの先頭に追加
+
 
 #[link_section = ".boot2"]
 #[used]
@@ -47,28 +49,44 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let mut green_led = pins.gpio22.into_push_pull_output();
-    let mut orange_led = pins.gpio21.into_push_pull_output();
-    let mut red_led = pins.gpio20.into_push_pull_output();
+
+    let sda_pin = pins.gpio16.into_pull_up_input().into_function::<hal::gpio::FunctionI2C>();
+    let scl_pin = pins.gpio17.into_pull_up_input().into_function::<hal::gpio::FunctionI2C>();
+    
+    // I2C0 の初期化（400kHz）
+    let i2c = hal::I2C::i2c0(
+        pac.I2C0,
+        sda_pin,
+        scl_pin,
+        400_000u32.Hz(),
+        &mut pac.RESETS,
+        &clocks.system_clock,
+    );
+
+    // PCF8574 バックパック付き LCD の I2C アドレス（多くの場合 0x27 または 0x3F）
+    let lcd_address = 0x27;
+
+    let mut lcd = HD44780::new_i2c(i2c, lcd_address, &mut timer)
+        .unwrap_or_else(|_| core::panic!("LCD init error!"));
 
     loop {
-        info!("green");
-        green_led.set_high().unwrap();
         timer.delay_ms(2000);
-        green_led.set_low().unwrap();
 
-        info!("orange");
-        for _ in 1..4 {
-            orange_led.set_high().unwrap();
-            timer.delay_ms(500);
-            orange_led.set_low().unwrap();
-            timer.delay_ms(500);
-        }
-        orange_led.set_low().unwrap();
+        lcd.clear(&mut timer).unwrap();
 
-        info!("red");
-        red_led.set_high().unwrap();
-        timer.delay_ms(2000);
-        red_led.set_low().unwrap();
+        lcd.write_str("Hello, Pico", &mut timer).unwrap();
+    
+        lcd.set_cursor_pos(40, &mut timer).unwrap();
+        lcd.write_str("Rust on RP2040.", &mut timer).unwrap();
+
+        timer.delay_ms(1000);
+
+        lcd.clear(&mut timer).unwrap();
+
+        // test
+        lcd.write_bytes(
+            &[0x74, 0x65, 0x73, 0x74]
+            , &mut timer).unwrap();
+        
     }
 }
